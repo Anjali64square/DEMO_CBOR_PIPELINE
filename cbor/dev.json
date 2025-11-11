@@ -1,0 +1,19 @@
+{
+  "Parameters": {
+    "Environment": "dev",
+    "Application": "customer-book-of-records-api",
+    "LambdaRole": "CBORLambdaExecutionRole",
+    "LambdapythonRuntime": "python3.9",
+    "LambdaMemorySize": "256",
+    "LambdaTimeout": "300",
+    "SecurityContact": "kuthariag@gmail.com",
+
+    "CborpythonLambdaHandler": "customer-book-of-records.lambda_handler",
+
+    "MySQLHost": "localhost",
+    "MySQLPort": "3306",
+    "MySQLUser": "root",
+    "MySQLPassword": "aman@K123",
+    "MySQLDatabase": "company_db"
+  }
+}

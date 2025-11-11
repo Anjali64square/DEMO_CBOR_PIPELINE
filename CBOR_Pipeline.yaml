@@ -1,0 +1,215 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: CBOR Continuous Delivery with CodePipeline and CloudFormation
+Parameters:
+  #####################################################################################################################
+  # Account / Environment Specific Parameters
+  #####################################################################################################################
+  CodeBuildServiceRole:
+    Type: String
+    Description: Name of the role that has access for CodeBuild
+    Default: cross-account-codepipeline-deploy-role
+  #####################################################################################################################
+  # GitHub Specific Parameters
+  #####################################################################################################################
+  ConnectionID:
+    Type: String
+    Description: Github connection ID
+    Default: e13ed995-b621-4925-9f4c-457111884daa
+  FullRepositoryName:
+    Type: String
+    Description: GitHub repository name
+    Default: true-health/cbor-api
+  GitHubBranch:
+    Type: String
+    Description: GitHub repository branch
+    Default: CBOR-API-102325
+   #####################################################################################################################
+   # CodePipeline Specific Parameters
+   #####################################################################################################################
+  SourceArtifact:
+    Type: String
+    Description: Artifact Source
+    Default: SourceArtifact
+  BuildArtifact:
+    Type: String
+    Description: Build Artifact
+    Default: BuildArtifact
+  ArtifactStoreLocation:
+    Type: String
+    Description: Artifact Store Default Location
+    Default: dev-big-mh-artifacts
+  AdminEmail:
+    Type: String
+    Description: Email id for CodePipeline notifications
+  ProjectName:
+    Type: String
+    Description: Default Name of the Project
+  AWSEnvironment:
+    Type: String
+    AllowedValues:
+      - dev
+      - test
+    Description: The AWS environment where the codepipeline is deployed.
+    Default: dev
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - test
+    Description: The environment key is used to designate the production level of the associated AWS resource.
+    Default: dev   
+  PipelineRole:
+    Type: String
+    Description: Role used by the pipeline
+    Default: cross-account-codepipeline-deploy-role
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      -
+        Label:
+          default: Environment
+        Parameters:
+          - Environment
+          - AWSEnvironment
+      -
+        Label:
+          default: Github Parameters
+        Parameters:
+          - ConnectionID
+          - FullRepositoryName
+          - GitHubBranch
+      -
+        Label:
+          default: CodePipeline Parameters
+        Parameters:
+          - BuildArtifact
+          - SourceArtifact
+          - ArtifactStoreLocation
+          - CodeBuildServiceRole
+          - PipelineRole
+          - ProjectName
+          - AdminEmail
+Conditions:
+  IsProd: !Equals [!Ref Environment, prod]
+  IsSubProd: !Not [!Equals [!Ref Environment, prod]]
+
+Resources:
+  CodePipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      ArtifactStore:
+        Type: S3
+        Location: !Sub "${ArtifactStoreLocation}"
+      Name: !Join [ "-", [ !Ref Environment, !Ref ProjectName, pipeline ] ]
+      RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${PipelineRole}"
+      Stages:
+        - Name: Source
+          Actions:
+          - Name: SourceAction
+            ActionTypeId:
+              Category: Source
+              Owner: AWS
+              Version: '1'
+              Provider: CodeStarSourceConnection
+            RunOrder: 1
+            Configuration:
+              ConnectionArn: !Sub "arn:aws:codestar-connections:${AWS::Region}:${AWS::AccountId}:connection/${ConnectionID}"
+              FullRepositoryId: !Ref FullRepositoryName
+              BranchName: !Ref GitHubBranch
+              OutputArtifactFormat: "CODE_ZIP"
+              DetectChanges: false          
+            OutputArtifacts:
+            - Name: !Ref SourceArtifact
+        - Name: Build
+          Actions:
+          - Name: BuildFromSourceAction
+            ActionTypeId:
+              Category: Build
+              Owner: AWS
+              Version: '1'
+              Provider: CodeBuild
+            RunOrder: 1
+            Configuration:
+              ProjectName: !Join [ "-", [ !Ref Environment, !Ref ProjectName ] ]
+            OutputArtifacts:
+            - Name: !Ref BuildArtifact
+            InputArtifacts:
+            - Name: !Ref SourceArtifact
+        - !If
+          - IsProd
+          - Name: Approval
+            Actions:
+            - Name: Approval
+              ActionTypeId:
+                Category: Approval
+                Owner: AWS
+                Provider: Manual
+                Version: '1'
+              RunOrder: 1
+              Configuration:
+                CustomData: Approve or Reject this change for Production
+          - !Ref AWS::NoValue
+        - Name: Deploy
+          Actions:
+          - Name: CreateChangeset
+            ActionTypeId:
+              Category: Deploy
+              Owner: AWS
+              Provider: CloudFormation
+              Version: '1'
+            RunOrder: 1
+            Configuration:
+              ActionMode: CHANGE_SET_REPLACE
+              Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
+              ChangeSetName: cbor-changeset
+              RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${PipelineRole}"
+              StackName: !Sub "${ProjectName}-${Environment}"
+              TemplateConfiguration: !Sub "${BuildArtifact}::${Environment}.json"
+              TemplatePath: !Sub "${BuildArtifact}::packaged_cbor_components.yml"
+            InputArtifacts:
+            - Name: !Ref BuildArtifact
+            RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${PipelineRole}"
+          - Name: ExecuteChangeset
+            ActionTypeId:
+              Category: Deploy
+              Owner: AWS
+              Provider: CloudFormation
+              Version: '1'
+            RunOrder: 2
+            Configuration:
+              ActionMode: CHANGE_SET_EXECUTE
+              ChangeSetName: cbor-changeset
+              StackName: !Sub "${ProjectName}-${Environment}"
+            InputArtifacts:
+            - Name: !Ref BuildArtifact
+            RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${PipelineRole}"
+              
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Packaging: NONE
+        Type: CODEPIPELINE
+      Description: !Sub CodeBuild Project for ${ProjectName}
+      Cache:
+        Type: NO_CACHE
+      Environment:
+        ComputeType: BUILD_GENERAL1_MEDIUM
+        PrivilegedMode: false
+        Image: aws/codebuild/windows-base:2019-1.0
+        Type: WINDOWS_SERVER_2019_CONTAINER
+        EnvironmentVariables:
+        - Type: PLAINTEXT
+          Name: ENVIRONMENT
+          Value: !Ref AWSEnvironment
+      Name: !Sub "${Environment}-${ProjectName}"
+      ServiceRole: !Sub "arn:aws:iam::${AWS::AccountId}:role/${CodeBuildServiceRole}"
+      Source:
+        InsecureSsl: false
+        Type: CODEPIPELINE
+        BuildSpec: cbor/buildspec.yml
+      Tags:
+        - Value: !Ref ProjectName
+          Key: Name
+      TimeoutInMinutes: 10
+ 

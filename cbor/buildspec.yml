@@ -1,0 +1,37 @@
+version: 0.2
+
+env:
+  variables:
+    LAYER_NAME: "cbor-mysql-layer"
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto11     # Required for libjvm.so availability
+      python: 3.9
+    commands:
+      - echo "➡ Installing python dependencies into layer structure"
+      - mkdir -p python
+      - pip install -r requirements.txt -t python/
+
+      - echo "➡ Downloading MySQL JDBC driver"
+      - curl -L -o mysql-connector-j-8.3.0.zip https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-j-8.3.0.zip
+      - unzip mysql-connector-j-8.3.0.zip
+      - cp mysql-connector-j-8.3.0/mysql-connector-j-8.3.0.jar python/
+
+      - echo "➡ Copying JVM (libjvm.so) for JPype to use"
+      - mkdir -p python/lib/server
+      - cp /usr/lib/jvm/java-11-amazon-corretto.x86_64/lib/server/libjvm.so python/lib/server/
+
+  build:
+    commands:
+      - echo "➡ Zipping layer"
+      - zip -r layer.zip python/
+      - echo "Layer zip ready"
+
+artifacts:
+  files:
+    - layer.zip                  # Layer to upload to Lambda Layers
+    - packaged_cbor_components.yml   # Template from previous step (don't remove)
+    - cbor/dev.json
+  discard-paths: yes

@@ -1,0 +1,160 @@
+Parameters:  
+    
+  # Tags  
+  ApplicationVersion:
+    Type: String
+  Application:
+    Type: String  
+  AWSEnvironment:
+    Type: String  
+  Environment:
+    Type: String
+  InfrastructureVersion:
+    Type: String    
+  Tier:
+    Type: String
+  ProjectCostCenter:
+    Type: String
+  OperatingCostCenter:
+    Type: String    
+  Owner:
+    Type: String  
+  SecurityContact:
+    Type: String    
+  Confidentiality:
+    Type: String    
+  Compliance:
+    Type: String
+
+  # Lambda params
+  LambdaRole:
+    Type: String
+  LambdaSecurityGroup:
+    Type: String
+  LambdapythonRuntime:
+    Type: String
+  LambdaMemorySize:
+    Type: String
+  LambdaTimeout:
+    Type: String
+  CborpythonLambdaHandler:
+    Type: String
+  PythonLibs:
+    Type: String
+
+  # ✅ Changed from IBM to MySQL secret
+  MySQLDbCredentialsARN:
+    Type: String
+
+Transform: AWS::Serverless-2016-10-31 
+
+Resources:  
+
+  CustomerBookOfRecordsLambda:
+    Type: AWS::Serverless::Function                 
+    Properties:
+      Description: Lambda function for customer book of records
+
+      Environment:
+        Variables:
+          # ✅ changed env var
+          MYSQL_SECRET_ARN: !Ref MySQLDbCredentialsARN
+
+      FunctionName: !Join [ "-", [ "mh", !Ref Environment, !Ref Application] ]
+      Role: !Sub arn:aws:iam::${AWS::AccountId}:role/${LambdaRole}
+      Runtime: !Ref LambdapythonRuntime
+      Handler: !Ref CborpythonLambdaHandler
+      MemorySize: !Ref LambdaMemorySize
+      Timeout: !Ref LambdaTimeout
+      CodeUri: ./customer-book-of-records
+
+      Layers: 
+        - !Ref PythonLibs
+
+      VpcConfig:
+        SecurityGroupIds:
+          - Fn::ImportValue: !Sub ${AWSEnvironment}-${LambdaSecurityGroup}
+        SubnetIds:
+          - Fn::ImportValue: !Sub ${AWSEnvironment}-PrivateSubnet2
+          - Fn::ImportValue: !Sub ${AWSEnvironment}-PrivateSubnet3
+
+      Tags: 
+        Name: !Join [ "-", [ !Ref Environment, !Ref Application,  "cbor" ] ]
+        Environment: !Ref Environment
+        Application: !Ref Application
+        ApplicationVersion: !Ref ApplicationVersion
+        InfrastructureVersion: !Ref InfrastructureVersion
+        Tier: !Ref Tier
+        ProjectCostCenter: !Ref ProjectCostCenter
+        OperatingCostCenter: !Ref OperatingCostCenter
+        Owner: !Ref Owner
+        SecurityContact: !Ref SecurityContact
+        Confidentiality: !Ref Confidentiality
+        Compliance: !Ref Compliance
+        PythonLibs: !Ref PythonLibs
+  
+  CborHttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    DependsOn: 
+      - CustomerBookOfRecordsLambda     
+    Properties:
+      Name: mh-CBOR-HTTP-API-Gateway
+      Description: HTTP API Gateway for CBOR Lambda Integration
+      ProtocolType: HTTP
+
+  CborLambdaPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn: 
+      - CborHttpApi 
+    Properties:
+      FunctionName: !Ref CustomerBookOfRecordsLambda
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${CborHttpApi}/*/*/dropdown
+
+  CborIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    DependsOn: 
+      - CborHttpApi
+    Properties:
+      ApiId: !Ref CborHttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub 
+        arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:mh-${Environment}-${Application}
+      IntegrationMethod: GET
+      PayloadFormatVersion: '2.0'
+
+  CborJWTAuthorizer:
+    Type: AWS::ApiGatewayV2::Authorizer
+    DependsOn: 
+      - CborHttpApi
+    Properties:
+      ApiId: !Ref CborHttpApi
+      AuthorizerType: JWT
+      IdentitySource: 
+        - '$request.header.Authorization'
+      Name: CborJWTAuthorizer
+      JwtConfiguration:
+        Audience:
+          - api://default
+        Issuer: https://truehealthsso.okta.com/oauth2/default
+
+  CborRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DependsOn: 
+      - CborHttpApi
+    Properties:
+      ApiId: !Ref CborHttpApi
+      RouteKey: 'GET /dropdown'
+      Target: !Sub integrations/${CborIntegration}
+      AuthorizationType: JWT
+      AuthorizerId: !Ref CborJWTAuthorizer
+
+  CborStage:
+    Type: AWS::ApiGatewayV2::Stage
+    DependsOn: 
+      - CborHttpApi
+    Properties:
+      ApiId: !Ref CborHttpApi
+      StageName: !Ref Environment
+      AutoDeploy: true

@@ -1,0 +1,124 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudFormation Template for CBOR (MySQL-based)'
+
+Parameters:
+  NotificationEmail:
+    Description: Email address to notify if there are any errors in cbor
+    Type: String
+    Default: 'kuthariag@gmail.com'
+    AllowedPattern: "([a-zA-Z0-9_\\-\\.]+)@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.)|(([a-zA-Z0-9\\-]+\\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\\]?)"
+    ConstraintDescription: must be a valid email address.
+
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - test
+      - stage
+      - prod
+    Default: dev
+
+  Application:
+    Type: String
+    Default: 'customer-book-of-records-api'
+
+  LambdaRole:
+    Type: String
+    Default: CBORLambdaExecutionRole
+
+  LambdapythonRuntime:
+    Type: String
+    AllowedValues:
+      - python3.9
+    Default: python3.9
+
+  LambdaMemorySize:
+    Type: Number
+    Default: 256
+
+  LambdaTimeout:
+    Type: Number
+    Default: 300
+
+  SecurityContact:
+    Type: String
+    Default: kuthariag@gmail.com
+
+  CborpythonLambdaHandler:
+    Type: String
+    Default: customer-book-of-records.lambda_handler
+
+  MySQLHost:
+    Type: String
+    Default: localhost
+
+  MySQLPort:
+    Type: String
+    Default: 3306
+
+  MySQLUser:
+    Type: String
+    Default: root
+
+  MySQLPassword:
+    Type: String
+    Default: aman@K123
+
+  MySQLDatabase:
+    Type: String
+    Default: company_db
+
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  # Lambda dependencies layer (same as before)
+  PythonLibs:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Ref Application
+      Description: Dependencies for API lambdas.
+      ContentUri: 
+        Bucket: dev-big-mh-artifacts
+        Key: cbor_iseries_python_Layer.zip
+      CompatibleRuntimes:
+        - python3.9
+
+  # Secrets stack (updated to use MySQL)
+  CborSecrets:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./secrets_manager/cbor_secrets.yaml
+      Parameters:
+        Environment: !Ref Environment
+        Application: !Ref Application
+        LambdaRole: !Ref LambdaRole
+        LambdapythonRuntime: !Ref LambdapythonRuntime
+        LambdaMemorySize: !Ref LambdaMemorySize
+        LambdaTimeout: !Ref LambdaTimeout
+        SecurityContact: !Ref SecurityContact
+        NotificationEmail: !Ref NotificationEmail
+        CborpythonLambdaHandler: !Ref CborpythonLambdaHandler
+        MySQLHost: !Ref MySQLHost
+        MySQLPort: !Ref MySQLPort
+        MySQLUser: !Ref MySQLUser
+        MySQLPassword: !Ref MySQLPassword
+        MySQLDatabase: !Ref MySQLDatabase
+
+  # Lambda stack (same references as before)
+  cborLambdas:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - CborSecrets
+    Properties:
+      TemplateURL: ./lambdas/customer_book_of_records_lambda.yaml
+      Parameters:
+        Environment: !Ref Environment
+        Application: !Ref Application
+        LambdaRole: !Ref LambdaRole
+        LambdapythonRuntime: !Ref LambdapythonRuntime
+        LambdaMemorySize: !Ref LambdaMemorySize
+        LambdaTimeout: !Ref LambdaTimeout
+        SecurityContact: !Ref SecurityContact
+        NotificationEmail: !Ref NotificationEmail
+        CborpythonLambdaHandler: !Ref CborpythonLambdaHandler
+        MySQLDbCredentialsARN: !GetAtt CborSecrets.Outputs.MySQLDbCredentialsARN
