@@ -41,9 +41,11 @@ Parameters:
   AdminEmail:
     Type: String
     Description: Email id for CodePipeline notifications
+    Default: kuthariag@gmail.com
   ProjectName:
     Type: String
     Description: Default Name of the Project
+    Default: CBOR-PIPELINE
   AWSEnvironment:
     Type: String
     AllowedValues:
