@@ -7,22 +7,22 @@ Parameters:
   CodeBuildServiceRole:
     Type: String
     Description: Name of the role that has access for CodeBuild
-    Default: cross-account-codepipeline-deploy-role
+    Default: CBOR-CodeBuildRole
   #####################################################################################################################
   # GitHub Specific Parameters
   #####################################################################################################################
   ConnectionID:
     Type: String
     Description: Github connection ID
-    Default: e13ed995-b621-4925-9f4c-457111884daa
+    Default: 818072e4-b8eb-45d2-8e37-8e43c5175f68
   FullRepositoryName:
     Type: String
     Description: GitHub repository name
-    Default: true-health/cbor-api
+    Default: Anjali64square/DEMO_CBOR_PIPELINE
   GitHubBranch:
     Type: String
     Description: GitHub repository branch
-    Default: CBOR-API-102325
+    Default: main
    #####################################################################################################################
    # CodePipeline Specific Parameters
    #####################################################################################################################
@@ -61,7 +61,7 @@ Parameters:
   PipelineRole:
     Type: String
     Description: Role used by the pipeline
-    Default: cross-account-codepipeline-deploy-role
+    Default: CBOR-CodePipelineRole 
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
@@ -113,7 +113,7 @@ Resources:
               Provider: CodeStarSourceConnection
             RunOrder: 1
             Configuration:
-              ConnectionArn: !Sub "arn:aws:codestar-connections:${AWS::Region}:${AWS::AccountId}:connection/${ConnectionID}"
+              ConnectionArn: !Sub "arn:aws:codestar-connections:us-east-1:511221465618:connection/818072e4-b8eb-45d2-8e37-8e43c5175f68"
               FullRepositoryId: !Ref FullRepositoryName
               BranchName: !Ref GitHubBranch
               OutputArtifactFormat: "CODE_ZIP"

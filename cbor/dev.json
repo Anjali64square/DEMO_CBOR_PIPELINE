@@ -2,7 +2,7 @@
   "Parameters": {
     "Environment": "dev",
     "Application": "customer-book-of-records-api",
-    "LambdaRole": "CBORLambdaExecutionRole",
+    "LambdaRole": "CBOR-LambdaExecutionRole",
     "LambdapythonRuntime": "python3.9",
     "LambdaMemorySize": "256",
     "LambdaTimeout": "300",
