@@ -12,7 +12,7 @@ phases:
     commands:
       - echo "➡ Installing python dependencies into layer structure"
       - mkdir -p python
-      - pip install -r requirements.txt -t python/
+      - pip install -r cbor/requirements.txt -t python/
 
       - echo "➡ Downloading MySQL JDBC driver"
       - curl -L -o mysql-connector-j-8.3.0.zip https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-j-8.3.0.zip
