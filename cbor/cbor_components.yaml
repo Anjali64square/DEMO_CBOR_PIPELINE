@@ -78,8 +78,8 @@ Resources:
       LayerName: !Ref Application
       Description: Dependencies for API lambdas.
       ContentUri: 
-        Bucket: dev-big-mh-artifacts
-        Key: cbor_iseries_python_Layer.zip
+        Bucket: cbor-artifact-bckt
+        Key: layer.zip
       CompatibleRuntimes:
         - python3.9
 
