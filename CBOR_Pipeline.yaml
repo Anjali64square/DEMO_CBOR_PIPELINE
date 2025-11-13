@@ -37,7 +37,7 @@ Parameters:
   ArtifactStoreLocation:
     Type: String
     Description: Artifact Store Default Location
-    Default: dev-big-mh-artifacts
+    Default: cbor-artifact-bckt
   AdminEmail:
     Type: String
     Description: Email id for CodePipeline notifications
