@@ -25,7 +25,7 @@ phases:
       - mkdir -p python
 
       - pip install -r cbor/requirements.txt -t python/
- 
+
       - echo "➡ Downloading MySQL JDBC driver"
 
       - curl -L -o mysql-connector-j-8.3.0.zip https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-j-8.3.0.zip
@@ -33,7 +33,7 @@ phases:
       - unzip mysql-connector-j-8.3.0.zip
 
       - cp mysql-connector-j-8.3.0/mysql-connector-j-8.3.0.jar python/
- 
+
       - echo "➡ Copying JVM (libjvm.so)"
 
       - mkdir -p python/lib/server
@@ -47,18 +47,12 @@ phases:
       - echo "➡ Zipping layer"
 
       - zip -r layer.zip python/
- 
+
       - echo "➡ Packaging CloudFormation template"
 
-      - aws cloudformation package \
+      - aws cloudformation package --template-file cbor/cbor_components.yaml --s3-bucket $ARTIFACT_BUCKET --output-template-file packaged_cbor_components.yml
 
-          --template-file cbor/cbor_components.yaml \
-
-          --s3-bucket $ARTIFACT_BUCKET \
-
-          --output-template-file packaged_cbor_components.yml
- 
-      - echo " Layer & packaged template ready"
+      - echo "⭐ Layer & packaged template ready"
  
 artifacts:
 
