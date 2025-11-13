@@ -5,6 +5,8 @@ env:
   variables:
 
     LAYER_NAME: "cbor-mysql-layer"
+
+    ARTIFACT_BUCKET: "cbor-artifact-bckt"
  
 phases:
 
@@ -45,8 +47,18 @@ phases:
       - echo "➡ Zipping layer"
 
       - zip -r layer.zip python/
+ 
+      - echo "➡ Packaging CloudFormation template"
 
-      - echo "Layer zip ready"
+      - aws cloudformation package \
+
+          --template-file cbor/cbor_components.yaml \
+
+          --s3-bucket $ARTIFACT_BUCKET \
+
+          --output-template-file packaged_cbor_components.yml
+ 
+      - echo " Layer & packaged template ready"
  
 artifacts:
 
@@ -54,7 +66,7 @@ artifacts:
 
     - layer.zip
 
-    - cbor/packaged_cbor_components.yml
+    - packaged_cbor_components.yml
 
     - cbor/dev.json
 
