@@ -195,11 +195,12 @@ Resources:
       Description: !Sub CodeBuild Project for ${ProjectName}
       Cache:
         Type: NO_CACHE
-      Environment:
+        Environment:
         ComputeType: BUILD_GENERAL1_MEDIUM
         PrivilegedMode: false
-        Image: aws/codebuild/windows-base:2019-1.0
-        Type: WINDOWS_SERVER_2019_CONTAINER
+        Image: aws/codebuild/standard:6.0
+        Type: LINUX_CONTAINER
+
         EnvironmentVariables:
         - Type: PLAINTEXT
           Name: ENVIRONMENT
