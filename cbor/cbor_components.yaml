@@ -11,16 +11,12 @@ Parameters:
 
   Environment:
     Type: String
-    AllowedValues:
-      - dev
-      - test
-      - stage
-      - prod
     Default: dev
+    AllowedValues: [dev, test, stage, prod]
 
   Application:
     Type: String
-    Default: 'customer-book-of-records-api'
+    Default: customer-book-of-records-api
 
   LambdaRole:
     Type: String
@@ -28,8 +24,6 @@ Parameters:
 
   LambdapythonRuntime:
     Type: String
-    AllowedValues:
-      - python3.9
     Default: python3.9
 
   LambdaMemorySize:
@@ -71,22 +65,22 @@ Parameters:
 Transform: AWS::Serverless-2016-10-31
 
 Resources:
-  # Lambda dependencies layer (same as before)
+
   PythonLibs:
     Type: AWS::Serverless::LayerVersion
     Properties:
       LayerName: !Ref Application
       Description: Dependencies for API lambdas.
-      ContentUri: 
+      ContentUri:
+        Bucket: !Ref AWS::NoValue
         Key: layer.zip
       CompatibleRuntimes:
         - python3.9
 
-  # Secrets stack (updated to use MySQL)
   CborSecrets:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: ./secrets_manager/cbor_secrets.yaml
+      TemplateURL: secrets_manager/cbor_secrets.yaml
       Parameters:
         Environment: !Ref Environment
         Application: !Ref Application
@@ -103,13 +97,11 @@ Resources:
         MySQLPassword: !Ref MySQLPassword
         MySQLDatabase: !Ref MySQLDatabase
 
-  # Lambda stack (same references as before)
   cborLambdas:
     Type: AWS::CloudFormation::Stack
-    DependsOn:
-      - CborSecrets
+    DependsOn: [CborSecrets]
     Properties:
-      TemplateURL: ./lambdas/customer_book_of_records_lambda.yaml
+      TemplateURL: lambdas/customer_book_of_records_lambda.yaml
       Parameters:
         Environment: !Ref Environment
         Application: !Ref Application
