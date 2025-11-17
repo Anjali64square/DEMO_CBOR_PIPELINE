@@ -41,6 +41,7 @@ phases:
       - echo "⭐ Layer & packaged template ready"
  
 artifacts:
+  base-directory: .         # <-- important so paths are correct
   files:
     - layer.zip
     - packaged_cbor_components.yml
