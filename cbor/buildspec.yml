@@ -23,9 +23,7 @@ phases:
 
       - echo "➡ Copying JVM (libjvm.so)"
       - mkdir -p python/lib/server
-      - JVM_PATH=$(find /usr/lib/jvm -name "libjvm.so" | head -n 1)
-      - echo "Found JVM at: $JVM_PATH"
-      - cp "$JVM_PATH" python/lib/server/
+      - bash -c 'JVM_PATH=$(find /usr/lib/jvm -name "libjvm.so" | head -n 1); echo "Found JVM at: $JVM_PATH"; cp "$JVM_PATH" python/lib/server/'
  
   build:
     commands:
