@@ -201,8 +201,13 @@ Resources:
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                 ChangeSetName: cbor-changeset
                 StackName: !Sub "${ProjectName}-${Environment}"
-                TemplateConfiguration: !Sub "${BuildArtifact}::${Environment}.json"
+
+                # ❌ Removed TemplateConfiguration (this was wrong)
+                # TemplateConfiguration: !Sub "${BuildArtifact}::${Environment}.json"
+
+                # ✔ This is the correct template file coming from CodeBuild
                 TemplatePath: !Sub "${BuildArtifact}::packaged_cbor_components.yml"
+
                 RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${PipelineRole}"
               InputArtifacts:
                 - Name: !Ref BuildArtifact
@@ -221,6 +226,7 @@ Resources:
                 RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${PipelineRole}"
               InputArtifacts:
                 - Name: !Ref BuildArtifact
+
 
   #############################################################################################################
   # CODEBUILD PROJECT (FIXED + LINUX + VALIDATED)
