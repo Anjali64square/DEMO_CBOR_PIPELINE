@@ -33,15 +33,12 @@ phases:
       - zip -r layer.zip python/
 
       - echo "➡ Packaging CloudFormation template"
-      - aws cloudformation package \
-          --template-file cbor/cbor_components.yaml \
-          --s3-bucket $ARTIFACT_BUCKET \
-          --output-template-file packaged_cbor_components.yml
+      - aws cloudformation package --template-file cbor/cbor_components.yaml --s3-bucket $ARTIFACT_BUCKET --output-template-file packaged_cbor_components.yml
 
       - echo "⭐ Layer & packaged template ready"
  
 artifacts:
-  base-directory: .         # <-- important so paths are correct
+  base-directory: .
   files:
     - layer.zip
     - packaged_cbor_components.yml
