@@ -68,7 +68,9 @@ Resources:
       LayerName: !Ref Application
       CompatibleRuntimes:
         - python3.9
-      Content: layer.zip
+      Content:
+        S3Bucket: cbor-artifact-bckt
+        S3Key: layer.zip
 
   CborSecrets:
     Type: AWS::CloudFormation::Stack
