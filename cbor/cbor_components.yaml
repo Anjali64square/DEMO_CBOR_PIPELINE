@@ -68,7 +68,7 @@ Resources:
       LayerName: !Ref Application
       CompatibleRuntimes:
         - python3.9
-      ContentUri: layer.zip
+      ContentUri: ../layer.zip
  
 
   CborSecrets:
