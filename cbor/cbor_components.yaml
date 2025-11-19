@@ -63,13 +63,14 @@ Parameters:
 Resources:
 
   PythonLibs:
-    Type: AWS::Serverless::LayerVersion
+    Type: AWS::Lambda::LayerVersion
     Properties:
       LayerName: !Ref Application
       CompatibleRuntimes:
         - python3.9
-      ContentUri: ../layer.zip
- 
+      Content:
+        S3Bucket: cbor-artifact-bckt
+        S3Key: layer.zip
 
   CborSecrets:
     Type: AWS::CloudFormation::Stack
