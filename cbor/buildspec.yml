@@ -1,16 +1,15 @@
 version: 0.2
- 
+
 env:
   variables:
     LAYER_NAME: "cbor-mysql-layer"
     ARTIFACT_BUCKET: "cbor-artifact-bckt"
- 
+
 phases:
   install:
     runtime-versions:
       java: corretto11
       python: 3.9
-
     commands:
       - echo "➡ Installing python dependencies into layer structure"
       - mkdir -p python
@@ -21,20 +20,23 @@ phases:
       - unzip mysql-connector-j-8.3.0.zip
       - cp mysql-connector-j-8.3.0/mysql-connector-j-8.3.0.jar python/
 
-      - echo "➡ Copying JVM (libjvm.so)"
+      - echo "➡ Searching & copying JVM (libjvm.so)"
       - mkdir -p python/lib/server
       - bash -c 'JVM_PATH=$(find /usr/lib/jvm -name "libjvm.so" | head -n 1); echo "Found JVM at: $JVM_PATH"; cp "$JVM_PATH" python/lib/server/'
- 
+
   build:
     commands:
-      - echo "➡ Zipping layer"
+      - echo "➡ Zipping lambda layer"
       - zip -r layer.zip python/
 
-      - echo "➡ Packaging CloudFormation template"
-      - aws cloudformation package --template-file cbor/cbor_components.yaml --s3-bucket $ARTIFACT_BUCKET --output-template-file packaged_cbor_components.yml
+      - echo "➡ Packaging CloudFormation (cbor_components.yaml)"
+      - aws cloudformation package \
+          --template-file cbor/cbor_components.yaml \
+          --s3-bucket $ARTIFACT_BUCKET \
+          --output-template-file packaged_cbor_components.yml
 
       - echo "⭐ Layer & packaged template ready"
- 
+
 artifacts:
   base-directory: .
   files:
