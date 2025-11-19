@@ -1,0 +1,59 @@
+version: 0.2
+
+env:
+  variables:
+    ARTIFACT_BUCKET: "cbor-artifact-bckt"
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto11
+      python: 3.9
+    commands:
+      - echo "------ INSTALL PHASE STARTED ------"
+
+      - echo "Project structure:"
+      - ls -R .
+
+      - echo "Installing python dependencies into layer/python"
+      - mkdir -p layer/python
+      - pip install -r cbor/requirements.txt -t layer/python
+
+      - echo "Downloading MySQL JDBC driver"
+      - curl -L -o mysql.zip https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-j-8.3.0.zip
+      - unzip mysql.zip
+      - cp mysql-connector-j-*/mysql-connector-j-*.jar layer/python/
+
+      - echo "Copying JVM (libjvm.so)"
+      - mkdir -p layer/python/lib/server
+      - JVM_FILE=$(find /usr/lib/jvm -name "libjvm.so" | head -n 1)
+      - echo "Found JVM at ${JVM_FILE}"
+      - cp "$JVM_FILE" layer/python/lib/server/
+
+      - echo "------ INSTALL PHASE COMPLETE ------"
+
+  build:
+    commands:
+      - echo "------ BUILD PHASE STARTED ------"
+
+      - echo "Creating layer.zip in project root"
+      - cd layer
+      - zip -r ../layer.zip python
+      - cd ..
+      - ls -l
+
+      - echo "Packaging CloudFormation template"
+      - aws cloudformation package \
+          --template-file cbor/cbor_components.yaml \
+          --s3-bucket $ARTIFACT_BUCKET \
+          --output-template-file packaged_cbor_components.yml
+
+      - echo "------ BUILD PHASE COMPLETE ------"
+      - ls -l
+
+artifacts:
+  files:
+    - layer.zip
+    - packaged_cbor_components.yml
+    - cbor/dev.json
+  discard-paths: yes
