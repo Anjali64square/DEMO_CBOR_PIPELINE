@@ -12,23 +12,31 @@ phases:
     commands:
       - echo "------ INSTALL PHASE STARTED ------"
 
-      - echo "Project structure:"
+      # Show project contents
+      - echo "Project contents:"
       - ls -R .
 
+      # Install Python dependencies
       - echo "Installing python dependencies into layer/python"
       - mkdir -p layer/python
       - pip install -r cbor/requirements.txt -t layer/python
 
+      # Download MySQL JDBC driver
       - echo "Downloading MySQL JDBC driver"
       - curl -L -o mysql.zip https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-j-8.3.0.zip
       - unzip mysql.zip
       - cp mysql-connector-j-*/mysql-connector-j-*.jar layer/python/
 
+      # Copy JVM library
       - echo "Copying JVM (libjvm.so)"
       - mkdir -p layer/python/lib/server
       - JVM_FILE=$(find /usr/lib/jvm -name "libjvm.so" | head -n 1)
       - echo "Found JVM at ${JVM_FILE}"
       - cp "$JVM_FILE" layer/python/lib/server/
+
+      # Verify layer contents
+      - echo "Contents of layer folder:"
+      - ls -R layer
 
       - echo "------ INSTALL PHASE COMPLETE ------"
 
@@ -36,20 +44,27 @@ phases:
     commands:
       - echo "------ BUILD PHASE STARTED ------"
 
+      # Zip Lambda layer
       - echo "Creating layer.zip in project root"
       - cd layer
       - zip -r ../layer.zip python
       - cd ..
       - ls -l
 
+      # Verify nested templates exist
+      - echo "Checking nested templates"
+      - ls -l cbor/secrets_manager/cbor_secrets.yaml
+      - ls -l cbor/lambdas/customer_book_of_records_lambda.yaml
+
+      # Package CloudFormation template
       - echo "Packaging CloudFormation template"
       - aws cloudformation package \
           --template-file cbor/cbor_components.yaml \
           --s3-bucket $ARTIFACT_BUCKET \
           --output-template-file packaged_cbor_components.yml
+      - ls -l
 
       - echo "------ BUILD PHASE COMPLETE ------"
-      - ls -l
 
 artifacts:
   files:
