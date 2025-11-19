@@ -260,7 +260,7 @@ Resources:
       Source:
         InsecureSsl: false
         Type: CODEPIPELINE
-        BuildSpec: buildspec.yml
+        BuildSpec: cbor/buildspec.yml
 
       Tags:
         - Key: Name
