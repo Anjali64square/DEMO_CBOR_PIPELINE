@@ -3,7 +3,7 @@ Description: CloudFormation Template for CBOR (MySQL-based)
 
 Parameters:
   NotificationEmail:
-    Description: Email address to notify if there are any errors in cbor
+    Description: Email address to notify if there are any errors in CBOR
     Type: String
     Default: kuthariag@gmail.com
 
@@ -69,7 +69,7 @@ Resources:
       CompatibleRuntimes:
         - python3.9
       Content:
-        S3Bucket: !Ref AWS::NoValue
+        S3Bucket: !Ref ArtifactBucket   # Use a valid bucket or leave empty for packaging
         S3Key: layer.zip
 
   CborSecrets:
